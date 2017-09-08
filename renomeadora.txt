@@ -1,0 +1,63 @@
+/*
+	----------------
+	Nome: Renomeadora
+	----------------
+	Autor: Christian | ChrisPif | Hunter1577
+	----------------
+	Versão: 2.0
+	----------------
+	Changelog:
+		[1.0] Script Criado
+		[2.0] Script optimizado e melhorado
+*/
+
+ayothaya,151,115,5	script	Renomeadora	951,{
+ 
+goto npcc;
+OnInit:
+	/* Configurações: */
+	SetArray .c[0],0,1,90; /* Apenas para VIPs[1=Sim/0=Não],Nível VIP minimo,Nível de GM minimo para ignorar as checagens. */
+	SetArray .p$[0],"GM","ADM","Admin","CM","EM"; /* Lista de 'coisas' proibidas no nome. */
+	end;
+	
+npcc:
+	Mes "[^0000FFRenomeadora^000000]";
+	Mes "Olá senhor"+((Sex)?" ":"a ")+StrCharInfo(0);
+		If (.c[0] && GetGMLevel() < .c[1]) {
+			Mes "Me perdoe, mas meus serviços são apenas para jogadores VIPS.";
+			Close;
+		}
+	Mes "Ofereço serviço de troca de nomes";
+	Mes "Gostaria de tentar um novo nome ?";
+		If (Select ("Sim, porque não?:Não, obrigado.") == 2) {
+			Next;
+			Mes "[^0000FFRenomeadora^000000]";
+			Mes "Tenha um bom jogo e volte quando quiser.";
+			Close;
+		}
+	Next;
+	Mes "[^0000FFRenomeadora^000000]";
+	Mes "Então vamos começas, digite o nome desejado.";
+	input @name$;
+	Set @name$, Escape_SQL(@name$);
+	Query_SQL "SELECT `name` FROM `char` WHERE `name` = '"+@name$+"'", @r$;
+		If (GetArraySize(@r$)) {
+			Next;
+			Mes "[^0000FFRenomeadora^000000]";
+			Mes "Me desculpe, mas esse nome já foi escolhido por alguém.";
+			Close;
+		}
+		For (Set .@i, 0; .@i < GetArraySize(.p$); set .@i,.@i + 1)
+			If (GetGMLevel() < .c[3] && Compare(@name$,.p$[.@i])) {
+				Next;
+				Mes "[^0000FFRenomeadora^000000]";
+				Mes "Me desculpe, mas o seu nome possui caracteres inválidos.";
+				Close;
+			}
+	Query_SQL "UPDATE `guild_member` SET `name` = '"+@name$+"' WHERE `name` = '"+StrCharInfo(0)+"'";
+	Query_SQL "UPDATE `char` SET `name` = '"+@name$+"' WHERE `name` = '"+StrCharInfo(0)+"'";
+	Next;
+	Mes "[^0000FFRenomeadora^000000]";
+	Mes "Operação finalizada, você será chamado pelo seu novo nome assim que você relogar.";
+	Close;
+}

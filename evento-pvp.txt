@@ -1,0 +1,188 @@
+
+/*
+	----------------
+	Nome: eventPvP
+	----------------
+	Autor: Christian | ChrisPif | Hunter1577
+	----------------
+	Versão: 2.0
+	----------------
+	Changelog:
+		[1.0] Script Criado
+		[2.0] Script optimizado e melhorado
+	----------------
+	Informações básicas:
+		Mande um Whisp para "npc:ePvP" 	
+		Mensagem: Tipo#Qtd#Alvo#QtAlvo#Mapa#Tempo
+			[Tipo:	0 - Zeny, ID - Item.]
+			[Qtd:	Quantidade do prêmio a ser ganha (tanto para itens quanto para zenys).]
+			[Alvo:	Nome do player que será o alvo do evento.]
+			[QtAlvo:	Quantidade de mortes (do alvo) necessárias para acabar o evento.]
+			[Mapa:	Mapa onde ocorrerá o evento.]
+			[Tempo:	Tempo de duração do evento em MINUTOS (0 para desativar esta função)]
+			
+		Mensagem = !reset
+			Desligará o evento.
+			
+		Mensagem = !info
+			Mostra como fazer um evento.
+	
+*/
+
+-	script	ePvP	-1,{
+	
+OnInit:
+	// Configurações Gerais //
+	set $@minGMLvL,80;	/* Level mínimo para poder executar um evento PvP		*/
+	set $@NoWin,1;	/* Se ningúem ganhar o evento, o prêmio irá para o Alvo ? [1 = sim, 0 = não] */
+	end;
+	
+	// Não mexa daqui para baixo
+OnWhisperGlobal:
+	if(getgmlevel()<$@minGMLvL) end;
+	if(compare(@whispervar0$,"!reset"))
+	{
+		callfunc("eEndEvent",2);
+		end;
+	}
+	if(compare(@whispervar0$,"!info"))
+	{
+		callfunc("eInfo");
+		end;
+	}
+	set .@nOp,((@whispervar5$!="" && atoi(@whispervar5$))?6:5);
+	for(set @i,0;@i<.@nOp;set @i,@i+1)
+	{
+		if(getstrlen(getd("@whispervar"+@i+"$"))<1)
+		{
+			dispbottom "[Evento PvP] O comando não foi digitado corretamente";
+			dispbottom "[Evento PvP] Digite '!info' para maiores informações";
+			end;
+		}
+	}
+	
+	set $@eTipo,atoi(@whispervar0$);	/* eTipo << Tipo do evento	*/
+	set $@eQtd,atoi(@whispervar1$);	/* eQtd << Quantidade do prêmio a ser ganha	*/
+	set $@eAlvoName$,@whispervar2$;	/* eAlvoName << Nome do alvo do Evento	*/
+	set $@eAlvoQtd,atoi(@whispervar3$);	/* eAlvoQtd << Quantidade necessária de mortes do alvo	*/
+	set $@eMapa$,@whispervar4$;	/* eAlvoQtd << Quantidade necessária de mortes do alvo	*/
+	set $@eTempo,atoi(@whispervar5$)*60*1000;	/* eTempo << Tempo de duração do evento em MINUTOS*60*1000	*/
+	set $@eAlvoAcc,getcharid(3,$@eAlvoName$);	/* eAlvoAcc << ID da conta do alvo (para 'attachrid')	*/
+	set $alvoCopy$,@whispervar2$;	/* Cópia de segurança para caso o servidor reinicie	*/
+	
+	if(!isloggedin($@eAlvoAcc)){
+		dispbottom "O player '"+$@eAlvoName$+"' não está online. Tente outra pessoa.";
+		end;
+	}
+	if(!getmapflag($@eMapa$,6)) setmapflag $@eMapa$,6;
+	set $@ePvP,1;
+	if($@eTempo)
+		set .@frase$,"[Duração de "+$@eTempo+" minutos]";
+	announce "[Evento-PvP] Mate o ["+$@eAlvoName$+"] "+$@eAlvoQtd+" vez"+(($@eAlvoQtd>1)?"es":"")+" e ganhe ["+$@eQtd+" "+(($@eTipo)?getitemname($@eTipo):"Zenys")+"] "+(($@eTempo>0)?"[Duração: "+$@eTempo/60/1000+" minuto"+(($@eTempo/60/1000>1)?"s":"")+"]":"")+" !",bc_all;
+	if($@eTempo)
+		initnpctimer;
+	attachrid($@eAlvoAcc);
+	warp $@eMapa$,0,0;
+	setarray $eSave$[0],getsavepoint(0),getsavepoint(1),getsavepoint(2);	/* Salva o ponto de retorno do alvo, caso o server reinicie	*/
+	savepoint $@eMapa$,0,0;
+	end;
+	
+OnTimer60000:
+	set .@temp,$@eTempo/60/1000;
+	if($@ePvP){
+		set $@eTempo,$@eTempo-60000;
+		if($@eTempo>0)
+			announce "[Evento-PvP] Ainda falta"+((.@temp>1)?"m":"")+" "+.@temp+" minuto"+((.@tempo>1)?"s":"")+" para acabar o evento !",bc_all;
+		if(!$@eTime){
+			stopnpctimer;
+			callfunc("eEndEvent",0);
+		}
+	}
+	end;
+	
+OnPCKillEvent:
+	if($@ePvP){
+		if(strcharinfo(3)==$@eMapa$ && rid2name(killedrid)==$@eAlvoName$)
+			setd "@eMatouAlvo_"+killedrid+"_"+$@contPvp,getd("@eMatouAlvo_"+killedrid+"_"+$@contPvp)+1;
+		if(getd("@eMatouAlvo_"+killedrid+"_"+$@contPvp)==$@eAlvoQtd){
+			if($@eTipo)
+				getitem $@eTipo,$@eQtd;
+			else
+				set Zeny,Zeny+$@eQtd;
+			callfunc("eEndPvp",1,strcharinfo(0));
+		}
+	}
+	end;
+	
+OnPCLoginEvent:
+	if(getstrlen($alvoCopy$)>4 && $alvoCopy$==strcharinfo(0))
+		callfunc("backSave",0,getcharid(3));
+		end;
+}
+function	script	eEndEvent	{
+	
+	switch(getarg(0)){
+		case 1:
+			announce "[Evento-PvP] Parabéns ao player ["+getarg(1)+"]! Ganhou o evento PvP !",bc_all;
+			callfunc("ePremio",getarg(1));
+			break;
+			
+		case 2: announce "[Evento-PvP] O evento PvP foi desligado por ["+strcharinfo(0)+"] !",bc_all;break;
+			
+		default:
+			if(!$@NoWin)
+				announce "[Evento-PvP] O evento PvP acabou! Não houve nenhum ganhador!",bc_all;
+			else{
+				announce "[Evento-PvP] O evento PvP acabou! "+$@eAlvoName$+" sobreviveu, portanto ganhará o prêmio!",bc_all;
+				callfunc("ePremio",$@eAlvoName$);
+			}
+			break;
+	}
+	callfunc("eBackSave",1,$@eAlvoAcc);
+	removemapflag $@eMapa$,6;
+	set $ePvP,0;
+	set $@contPvp,$@contPvp+1;
+	deletearray $eSave$;
+	set $@eAlvoName$,"";
+	set $@eMapa$,"";
+	return;
+}
+function	script	ePremio	{
+	
+	set .@acc,getcharid(3,getarg(0));
+	if($@eTipo)
+		getitem $@eTipo,$@eQtd,.@acc;
+	else{
+		attachrid(.@acc);
+		set Zeny,Zeny + $@eQtd;
+		detachrid;
+	}
+	return;
+}
+function	script	eBackSave	{
+	
+	attachrid(getarg(1));
+	savePoint $eSave$[0],atoi($eSave$[1]),atoi($eSave$[2]);
+	warp getsavepoint(0),getsavepoint(1),getsavepoint(2);
+	set $alvoCopy$,"";
+	return;
+}
+function	script	eInfo	{
+	
+	dispbottom "Mensagem: ";
+	dispbottom "Tipo#Qtd#Alvo#QtAlvo#Mapa#Tempo";
+	dispbottom " ";
+	dispbottom "[Tipo:	0 - Zeny, ID - Item.]";
+	dispbottom "[Qtd:	Quantidade do prêmio a ser ganha (tanto para itens quanto para zenys).]";
+	dispbottom "[Alvo:	Nome do player que será o alvo do evento.]";
+	dispbottom "[QtAlvo:	Quantidade de mortes (do alvo) necessárias para acabar o evento.]";
+	dispbottom "[Mapa:	Mapa onde ocorrerá o evento.]";
+	dispbottom "[Tempo:	Tempo de duração do evento em MINUTOS (0 para desativar esta função)]";
+	dispbottom " ";
+	dispbottom "Mensagem = !reset";
+	dispbottom "Desligará o evento.";
+	dispbottom " ";
+	dispbottom "Mensagem = !info";
+	dispbottom "Mostra como fazer um evento.";
+	return;
+}

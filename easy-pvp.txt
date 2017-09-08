@@ -1,0 +1,670 @@
+//
+//Alterações nas tabelas MYSQL - NECESSÁRIO
+//
+//ALTER TABLE `char` ADD `Kills` INT( 11 ) NOT NULL DEFAULT '0';
+//ALTER TABLE `char` ADD `Mortes` INT( 11 ) NOT NULL DEFAULT '0';
+//ALTER TABLE `char` ADD `Ratio` INT( 11 ) NOT NULL DEFAULT '0';
+//ALTER TABLE `guild` ADD `Kills` INT( 11 ) NOT NULL DEFAULT '0';
+//ALTER TABLE `guild` ADD `Mortes` INT( 11 ) NOT NULL DEFAULT '0';
+//ALTER TABLE `guild` ADD `Ratio` INT( 11 ) NOT NULL DEFAULT '0';
+//CREATE TABLE  `kill_log` (
+//`Assassino` VARCHAR( 32 ) NOT NULL ,
+//`Alvo` VARCHAR( 32 ) NOT NULL ,
+//`Data` VARCHAR( 32 ) NOT NULL ,
+//`ID` INT( 11 ) NOT NULL AUTO_INCREMENT ,
+//PRIMARY KEY (  `ID` )
+//) ENGINE = MYISAM
+//
+//Nota - Todas as configurações com dois asteriscos são obrigatórias.
+//
+//===== Cronus Script ========================================
+//= PvP & GvG / Ranking
+//===== Por: =================================================
+//= Christian / Hunter1577 [chris.k.andrade@hotmail.com]
+//===== Versão Atual: ========================================
+//= 4.8
+//===== Compatível Com: ======================================
+//= Cronus & eAthena
+//===== Changelog: =========================================== 
+//= 1.0 NPC Criado [Eu]
+//= 1.1 Mudado o sistema de Anúncio [idéia: Mooka]
+//= 2.0 Sistema consertado [Eu]
+//= 2.1 Novas configurações inseridas (veja // Configuração) [Eu]
+//= 2.2 Checagem de itens, Pvp Baby etc... adicionados [Eu]
+//= 2.5 Corrigido vários bugs, variáveis passadas para globais [Eu]
+//= 2.5 Checagem de itens em apenas alguns mapas adicionada [Eu]
+//= 2.6 Adicionada checagem de levem em mapa X,Y,...
+//= 3.0 Script Optimizado [Eu / Algumas idéias MidNight]
+//= 3.0 Adicionada Opção de mostrar Tipo de zona [Eu]
+//= 3.0 Adicionada a Opção de por Gvg ou PvP nos mapas [Eu]
+//= 3.1 Adicionada Opção de nível mínimo de GM para resetar o Ranking [Eu]
+//= 3.5 Adicionado sistema de pontuação GvG [Eu]
+//= 3.5 Adicionado Ranking GvG [Eu]
+//= 3.6 Adicionado Sons ao matar [Eu]
+//= 3.7 Adicionada opção que checa se o personagem tem amuleto de Ziegfried [Eu]
+//= 4.0 Adicionado sistema de invervalo entre kills [Eu - Idéia By: Puncker]
+//= 4.1 Adicionada checagem de clã em GvG [Eu]
+//= 4.2 Adicionada opção de custom função [Eu]
+//= 4.3 Adicionada opção de mostrar líderes PvP e GvG [Eu]
+//= 4.4 Adicionada opção de setar um limite de players nas arenas [Eu]
+//= 4.5 Adicionada opção de bloquear a entrada e GMs nas arenas [Eu]
+//= 4.6 Adicionado Log de Kills [Eu]
+//= 4.7 Adição de novas Classes Babys e retirado Alertas no map-server [Eu]
+//= 4.8 Mudança do getmpaxy por strcharinfo(3)
+//============================================================
+-	script	PvPConfs	-1,{
+
+// Configurações - 
+//0: Nome do PvP
+//1: Nome das arenas ["Mapa 1","Blabla",...] **
+//2: Mapa de cada arena ["map1","map2",...] **
+//3: Tipo de arena [0 = PvP, 1 = GvG] [Depende da opção (4)] **
+//4: O npc colocará os mapas em PvP automaticamente [0 = Não, 1 = Sim] **
+//5: Apenas conta pontos se o usuário estiver nos mapas PvPs(impede ganhar pontos com @duel,etc.) [0 = Não, 1 = Sim]
+//6: Anuncia para o servidor que o jogador X entrou na sala Y [0 = Não, 1 = Sim]
+//7: Mostra o número de jogadores na zoa de batalha X [0 = Não, 1 = Sim]
+//8: Anuncia o número de kills do jogador em um padrão(setado abaixo) [0 = Não, 1 = Sim]
+//9: Padrão de intervalo do anúncio entre Kills (Ex: a cada 25 kills será anunciado o número de kills do Jogador Y) [Valor de intervalo]
+//10: Ativa a função para resetar o Ranking e os pontos Kills e Mortes [0 = Não, 1 = Sim]
+//11: Número de dias para resetar (Ex: 30 dias = +- 1 mês -> a cada mês o ranking será resetado) [Só funcionára com o número 9 ativado]
+//12: Anuncia que X matou Y para o mapa [0 = Não, 1 = Sim]
+//13: Ativa a função de colocar o mapflag X,Y,Z.... nos mapas pvps [0 = Não, 1 = Sim]
+//14: Os Mapflags da função anterior [mf_mapflag,mf_mapflag2,...] Exemplo: "mf_clouds","mf_nowarp","mf_nosave"; [Setará esses mapflags nos mapas pvps]
+//15: Ativa a opção pvp para babys apenas [0 = Não, 1 = Sim]
+//16: Nome dos mapas babys, de acordo com a array $@MapsP$[]
+//17: Quando o jogador morre ele é ou não teleportado para seu ponto salvo automaticamente ? [Anti-Free Kill] [0 = Não, 1 = Sim]
+//18: Ativa Proibição de Itens [0 = Não, 1 = Sim]
+//19: ID dos itens proibidos [ID,ID,ID,ID,...]
+//20: Ativa a proibição dos itens em apenas alguns mapas do pvp [0 = Não, 1 = Sim]
+//21: Mapas onde os itens X serão bloqueados ["mapa1,"mapa2",...]
+//22: Ativa a limitação de lével para certa arena [0 = Não, 1 = Sim]
+//23: Limite de level (Min e Max) ["mapa1",LvLMin,LvLMax,"mapa2",LvLMin,LvLMax,...]
+//24: Mostra o tipo de Zona ao lado da opção no menu (Ou ao lado do número de combatentes, caso a opção (7) esteja ativada) [0 = Não, 1 = Sim]
+//25: Level de GM MÍNIMO para resetar o ranking manualmente [Padrão: 90]
+//26: Ativa a opção de Sons ao matar ( God Like, etc..) [0 = Não, 1 = Sim] [Ver sessão de Sons logo abaixo]
+//27: Número de pessoas que serão mostradas no Ranking (não passe de 120)
+//28: Mostra a sala de espera em cima do npc [0 = Não, 1 = Sim] [Ver sessões de Chat logo abaixo]
+//29: Mensagens que apareceram no chat ["msg","msg2",...]
+//30: Ativa o sistema de intervalo de pontos [0 = Não, 1 = Sim]
+//31: Número de SEGUNDOS para que o usuário possa matar novamente o jogador morto (de acordo com a opção (30) [Segundos]
+//32: Ativa a opção de que se o jogador morrer e tiver um amuleto de ziegfried, ele não voltará automaticamente ao seu ponto salvo [0 = Não, 1 = Sim]
+//33: Ativa as customs funções [0 = Não, 1 = Sim]
+//34: Custom funções ["mapa","nomedafunção","mapa2","nomedafunção2",...] [Olhe o exemplo da função "disguisepvp"]
+//35: Ativa a opção de mostrar o líder do PvP e GvG [0 = Não, 1 = Sim]
+//36: Ativa a opção de limitar o número de Jogadores em alguma arena [0 = Não, 1 = Sim]
+//37: Limite de usuários nas arenas X ["mapa1",MaxPlayers1,"mapa2",MaxPlayers2]
+//38: Configuração para bloquear GM no PvP [0 ou 1,Level Minimo de Bloqueio, Level Máximo] Ex: [1,20,80] Gms entre level 20 e 80 não entrarão
+//39: Registrar Kills ?(Log de Kills) [0 = Não, 1 = Sim]
+OnInit:
+
+// Não mexa aqui.
+	deletearray $@MapNames$;
+	deletearray $@MapsP$;
+	deletearray $@FlagList;
+	deletearray $@ForList;
+	deletearray $@BabyMaps$;
+	deletearray $@ForItemMapsList$;
+	deletearray $@ForLevelList$;
+	deletearray $@MapsType;
+	deletearray $@ChatMsgs$;
+	deletearray $@CustomFuncoesList$;
+	deletearray $@Lideres$;
+	deletearray $@MaxPlayers$;
+	deletearray $@BabyClasses;
+	
+// Pode mexer aqui.
+	set $@PvPName$,"[^FF0000PvP^000000]";	// 0
+	setarray $@MapNames$[0],"Zona de Guerra 1","Zona de conflítos","Zona Baby","Zona disguise";	// 1 **
+	setarray $@MapsP$[0],"pvp_n_1-5","guild_vs1","guild_vs2","pvp_2vs2";	// 2 **
+	setarray $@MapsType[0],0,1,0,0;	// 3 **
+	set $@PvPOn,1;	// 4 **
+	set $@MapCheck,1;	// 5
+	set $@AnnounceEntrada,1;	// 6
+	set $@NLutadores,1;	// 7
+	set $@AnnounceKills,1;	// 8
+	set $@AIntVal,50;	// 9
+	set $@NReset,0;	// 10
+	set $@NResetDay,30;	// 11
+	set $@AnnounceQuem,1;	// 12
+	set $@MapFlags,1;	// 13
+	setarray $@FlagList[0],2,34,0,13,8,3;	// 14 
+	set $@PvPBaby,1;	// 15
+	setarray $@BabyMaps$[0],"guild_vs2";	// 16
+	set $@DieTeleport,1;	// 17
+	set $@ForItens,0;	// 18
+	setarray $@ForList[0],607,678;	// 19
+	set $@ForItemMaps,0;	// 20
+	setarray $@ForItemMapsList$[0],"geffen";	// 21
+	set $@ForLevel,0;	// 22
+	setarray $@ForLevelList$[0],"pvp_n_1-5",350,600,"guild_vs3",350,600,"guild_vs2",350,600,"pvp_2vs2",350,600;	// 23
+	set $@ShowType,1;	// 24
+	set $@GMLvL,90;	// 25
+	set $@SoundOn,1;	// 26
+	set $@MaxRank,50;	// 27
+	set $@ChatOn,1;	// 28
+	setarray $@ChatMsgs$[0],"PvP & Gvg aqui mesmo !","Venha batalhar no PvP !","Mostre que seu clã é o mais forte !";	// 29 
+	set $@PvPInt,0;	// 30
+	set $@SecondInt,10;	// 31 
+	set $@ZiegAmul,1;	// 32
+	set $@CustomFuncoes,1;	// 33
+	setarray $@CustomFuncoesList$[0],"pvp_2vs2","disguisepvp";	// 34
+	setarray $@Lideres$,1,1,"ratio","ratio";	// 35 [PvP,GvG,Coluna PvP, Coluna GvG]
+	set $@LimP,1;	// 36
+	setarray $@MaxPlayers$,"pvp_n_1-5",5,"guild_vs2",10;	// 37
+	setarray $@BlockGM[0],1,30,80;	// 38
+	set $@LogKill,1;	// 39
+	
+// Configurações Misc (Preferencialmente, não mexa aqui)
+	setarray $@BabyClasses[0],4023,4045,4096,4112,4190,4191;	// Intervalo de Classes Babys, de dois em dois [ex: de 4023 à 4045 é baby]
+	
+// Sons - Sinta-se livre para mexer nas opções abaixo, mas não terão efeito se o item (26) não estiver ligado
+// Configure abaixo os sons que tocarão do seguinte modo:
+// $@Sounds$[Pontos sem morrer],"Nome do arquivo musical"; 
+// Nota: Não é preciso por .wav no nome do arquivo, o próprio script ja o faz
+
+	if(!$@SoundOn) end;
+	deletearray $@Sounds$;
+	setarray $@Sounds$[1],"First Blood";
+	setarray $@Sounds$[2],"Double Kill";
+	setarray $@Sounds$[3],"Triple Kill";
+	setarray $@Sounds$[4],"Mega Kill";
+	setarray $@Sounds$[5],"Ultra Kill";
+	setarray $@Sounds$[6],"Killing Spree";
+	setarray $@Sounds$[7],"Ownage";
+	setarray $@Sounds$[8],"Holy Shit";
+	setarray $@Sounds$[9],"Dominating";
+	setarray $@Sounds$[10],"Unstoppable";
+	setarray $@Sounds$[11],"Monster Kill";
+	setarray $@Sounds$[12],"God Like";
+	
+	end;
+}
+// Não Mude nada daqui para baixo.
+ayothaya,152,117,5	script	PvP	967,{
+
+	mes $@PvPName$;
+	mes "Olá "+strcharinfo(0);
+	mes "Sou o gerenciador PvP do servidor. Posso te levar à alguma zona de batalha ou então posso mostrar quem são os melhores, com o ranking.";
+	mes "O que me diz ?";
+	mes " ";
+	set @MyMenu$,"Quero entrar na Batalha:Gostaria de ver o Ranking:Não Obrigado:"+((getgmlevel()>$@GMLvL)?"Resetar Ranking":"");
+		switch(select(@MyMenu$)){
+ 
+			case 1: 
+				next;
+				mes $@PvPName$;
+				mes "As seguintes zonas estão disponíveis:";
+				mes " ";
+					if(atoi($@Lideres$[0]))
+						{
+							query_sql "SELECT `name` FROM `char` ORDER BY `"+$@Lideres$[2]+"` DESC LIMIT 1",@liderP$;
+							mes "Líder PvP: ^0000FF"+@liderP$+"^000000";
+						}
+					if(atoi($@Lideres$[1]))
+						{
+							query_sql "SELECT `name` FROM `guild` ORDER BY `"+$@Lideres$[3]+"` DESC LIMIT 1",@liderG$;
+							mes "Líder GvG: ^0000FF"+@liderG$+"^000000";
+						}
+					deletearray @MaxP;
+					for(set @i,0;@i<getarraysize($@MapNames$);set @i,@i+1)
+					{
+						if($@LimP)
+						{
+						set @MaxP,0;
+							for(set @a,0;@a<getarraysize($@MaxPlayers$); set @a,@a+2)
+								if($@MaxPlayers$[@a]==$@MapsP$[@i]) set @MaxP,$@MaxPlayers$[@a+1];
+						}
+						set @Tot$,((getmapusers($@MapsP$[@i])>=@MaxP)?"^FF0000":"^00FF00")+getmapusers($@MapsP$[@i])+((@MaxP>0)?"^000000/^FF0000"+@MaxP:"");
+						set .@menu$,.@menu$+"- "+$@MapNames$[@i]+" "+(($@NLutadores)?"["+@Tot$+"^000000]":"")+(($@ShowType)?" - ^0000FF"+(($@MapsType[@i])?"GvG":"PvP")+"^000000":"")+":";
+					}
+					
+				select(.@menu$);
+				next;
+					if($@BlockGM[0])  callfunc "BlockGM",0;
+					if($@PvPBaby)  callfunc "CheckBabyPvP",0;
+					if($@ForItens) callfunc "CheckItemPvP",0;	
+					if($@ForLevel) callfunc "CheckLevelPvP",0;
+					if($@LimP)
+						for(set @i,0;@i<getarraysize($@MaxPlayers$);set @i,@i+2)
+							if($@MapsP$[@menu-1]==$@MaxPlayers$[@i])
+								if(getmapusers($@MapsP$[@menu-1])>=atoi($@MaxPlayers$[@i+1]))
+								{	
+									mes $@PvPName$;
+									mes "O limite de jogadores nesta arena foi atingido.";
+									mes "Limite: ^FF0000"+$@MaxPlayers$[@i+1]+"^000000";
+									close;
+								}
+					if($@MapsType[@menu-1] && (!getcharid(2)))
+					{
+						mes $@PvPName$;
+						show "Você não está em nenhum clã, logo não posso te levar a uma zona GvG";
+						close;
+					}
+					if($@CustomFuncoes)
+						for(set @i,0;@i<getarraysize($@CustomFuncoesList$);set @i,@i+2)
+							if($@MapsP$[@menu-1]==$@CustomFuncoesList$[@i]) callfunc $@CustomFuncoesList$[@i+1];
+				mes "Ok, vou te teleportar até a zona: "+$@MapNames$[@menu-1];
+				next;
+					if($@AnnounceEntrada) Announce "["+(($@MapsType[@menu-1])?"GvG":"PvP")+"] "+strcharinfo(0)+" entrou na zona de batalha: "+$@MapNames$[@menu-1],9;
+				warp $@MapsP$[@menu-1],0,0;
+				end;
+ 
+			case 2:
+				next;
+				mes $@PvPName$;
+				mes "Gostaria de ver qual ranking ?";
+					select("Kills","Mortes","Ratio","Sair");
+					deletearray @Type$;
+					setarray @Type$[1],"Kills","Mortes","Ratio";
+					set @oldm,@menu;
+					switch(@menu)
+					{
+ 
+						case 1:
+						case 2:
+						case 3:
+							next;
+							mes $@PvPName$;
+							mes "Deseja ver qual tipo de Ranking de ^FF0000"+@Type$[@oldm]+"^000000?";
+							select("Jogadores","Clãs");
+							deletearray @Rank$;
+							setarray @Rank$[1],"char","guild";
+							deletearray @ChosenN$;
+							deletearray @ChosenP;
+							query_sql "SELECT `name`,`"+@Type$[@oldm]+"` FROM `"+@Rank$[@menu]+"` ORDER BY `"+@Rank$[@menu]+"`.`"+@Type$[@oldm]+"` DESC LIMIT "+$@MaxRank+"",@ChosenN$,@ChosenP;
+							break;
+							
+						case 4:
+							next;
+							mes $@PvPName$;
+							mes "Tenha um bom dia";
+							close;
+					}
+					next;
+					mes $@PvPName$;
+					mes "Posição  Nome  Pontos";
+					mes " ";
+						for(set @i,0;@i<getarraysize(@ChosenN$);set @i,@i+1)
+							mes "["+(@i+1)+"]  "+@ChosenN$[@i]+" - ^FF0000"+@ChosenP[@i]+"^000000";
+					close;
+ 
+			case 3:
+				next;
+				mes $@PvPName$;
+				mes "Tenha um bom dia";
+				close;
+ 
+			case 4:
+					if(getgmlevel()<$@GMLvL) close;
+				next;
+				mes $@PvPName$;
+				mes "O ranking foi resetado com sucesso.";
+				goto ResetManual;
+ 
+		}
+ 
+ 
+OnHour00:
+		if($@NReset)
+		{
+			set .@NoRID,1;
+			set $DP,$DP+1;
+				if($DP>=NResetDay)
+				{
+ResetManual:
+					announce "[PvP] O Ranking PvP e GvG foi resetado.",9;
+					query_sql "UPDATE `char` set `Kills` = '0'";
+					query_sql "UPDATE `char` set `Mortes` = '0'";
+					query_sql "UPDATE `char` set `Ratio` = '0'";
+					query_sql "UPDATE `guild` set `Kills` = '0'";
+					query_sql "UPDATE `guild` set `Mortes` = '0'";
+					query_sql "UPDATE `guild` set `Mortes` = '0'";
+					set $DP,0;
+				}
+		}else{
+		set $DP,0;
+		}
+	if(!.@NoRID) close2;
+	set .@NoRID,0;
+	end;
+	
+OnInit:
+		if($@ChatOn) 
+		{
+			if(getarraysize($@ChatMsgs$)<2)
+				{waitingroom $@ChatMsgs$[0],0;end;}
+			else{
+				set .ChatC,0;
+				waitingroom $@ChatMsgs$[.ChatC],0;
+				}
+		}
+// Edite o número após OnTimer para alterar o tempo em que o chat muda - [Tempo = segundos * 1000]
+OnTimer4000:
+	if($@ChatOn)
+	{
+		delwaitingroom;
+			if(.ChatC==(getarraysize($@ChatMsgs$)-1)) set .ChatC,0;
+		else
+			set .ChatC,.ChatC+1;
+			waitingroom $@ChatMsgs$[.ChatC],0;	
+	}
+	
+	initnpctimer;
+		
+ 
+}
+ 
+// Controle do PvP, não mexa neste NPC
+-	script	PvPControl	-1,{
+	
+OnPcKillEvent:
+	set @map$,strcharinfo(3);
+		if($@MapCheck)
+		{
+		set .@Cont,0;
+			for(set .@a,0;.@a<getarraysize($@MapNames$);set .@a,.@a+1)
+				if(@map$!=$@MapsP$[.@a]) set .@Cont,.@Cont+1;
+			if(.@Cont>=getarraysize($@MapNames$)) end;
+		}
+	set @Killer,getcharid(0);
+	set @Morto$,rid2name(killedrid);
+	set @Killed,getcharid(0,rid2name(killedrid));
+		if(@Killed==@Killer) end;
+	if($@PvPInt) callfunc "CheckIntervalo";
+	if($@LogKill) callfunc "LogKill";
+	set @WD,@WD+1;
+	if($@Sounds$[@WD]!="") set @Tocar$,$@Sounds$[@WD];
+	else set @Tocar$,"";
+		if($@AnnounceQuem) mapannounce @map$,"["+strcharinfo(0)+"] "+((getmapflag(@map$,9))?"do clã ["+getguildname(getcharid(2))+"]":"")+" matou ["+@Morto$+"]"+(($@SoundOn && @Tocar$!="")?" | ["+@Tocar$+"]":""),bc_map;
+		if($@SoundOn)
+			if($@Sounds$[@WD]!="") soundeffectall $@Sounds$[@WD]+".wav",0;
+	set @Table$,(getmapflag(@map$,9))?"guild":"char";
+	set @RID,(getmapflag(@map$,9))?getcharid(2):getcharid(0);
+	query_sql "UPDATE `"+@Table$+"` SET `Kills` = `Kills` + 1 WHERE `"+@Table$+"_id` = '"+@RID+"'";
+	query_sql "UPDATE `"+@Table$+"` SET `Ratio` = `Kills` - `Mortes` WHERE `"+@Table$+"_id` = '"+@RID+"'";
+	query_sql "SELECT `Kills`,`Ratio` FROM `"+@Table$+"` WHERE `"+@Table$+"_id` = '"+@RID+"'",@PvPPoints,@Ratio;
+	dispbottom ((getmapflag(@map$,9))?"Clã - ":"") +"Pontos PvP: "+@PvPPoints;
+	dispbottom ((getmapflag(@map$,9))?"Clã - ":"") +"Pontos Ratio: "+@Ratio; 
+		if($@AnnounceKills)
+		{
+				if(@PvPPoints==1) set NextAnnc,1;
+				if(@PvPPoints < NextAnnc) end;
+			Announce ((getmapflag(@map$,9))?"O clã "+ getguildname(getcharid(2))+" matou "+ @PvPPoints+" Players!":strcharinfo(0)+" | Matou "+@PvPPoints+" Players!"),bc_all,0xFF7F50;
+			set NextAnnc,NextAnnc+$@AIntVal;
+		}
+		if((getmapflag(@map$,9) && atoi($@Lideres$[1])) || (getmapflag(@map$,6) && atoi($@Lideres$[0])))
+			{
+				if(getmapflag(@map$,9)){ set @ID,getcharid(2);set @VarC,3;} else { set @ID,getcharid(0); set @VarC,2;}
+				query_sql "SELECT `name`,`"+$@Lideres$[@VarC]+"` FROM `"+@Table$+"` ORDER BY `"+$@Lideres$[@VarC]+"` DESC LIMIT 1",@liderP$,@Pts;
+					if(@liderP$==strcharinfo(0)) end;
+				query_sql "SELECT `"+$@Lideres$[@VarC]+"` FROM `"+@Table$+"` WHERE `"+@Table$+"_id` = '"+@ID+"'",@MPts;
+					if(@Pts<=@MPts) Announce ((getmapflag(@map$,9))?"O clã "+strcharinfo(2):strcharinfo(0))+" é "+((!Sex)?"a nova":"o novo")+" líder "+((getmapflag(@map$,9))?"da GvG":"do PvP"),bc_all;
+			}
+	end;
+ 
+ 
+OnPcDieEvent:
+	set @map$,strcharinfo(3);
+		if($@MapCheck)
+		{
+		set .@Cont2,0;
+			for(set .@a2,0;.@a2<getarraysize($@MapNames$);set .@a2,.@a2+1)
+				if(@map$!=$@MapsP$[.@a2]) set .@Cont2,.@Cont2+1;
+			if(.@Cont2>=getarraysize($@MapNames$)) end;
+		}
+	set @WD,0;
+	set @Table$,(getmapflag(@map$,9))?"guild":"char";
+	set @RID,(getmapflag(@map$,9))?getcharid(2):getcharid(0);
+	query_sql "UPDATE `"+@Table$+"` SET `Mortes` = `Mortes` + 1 WHERE `"+@Table$+"_id` = '"+@RID+"'";
+	query_sql "SELECT `Mortes` FROM `"+@Table$+"` WHERE `"+@Table$+"_id` = '"+@RID+"'",@Mortes;
+	dispbottom ((getmapflag(@map$,9))?"Clã - ":"") +"Mortes: "+@Mortes;
+		if($@DieTeleport)
+		{
+			if($@ZiegAmul && countitem(7621)>=1) end;
+			sleep2 1000;warp getsavepoint(0),getsavepoint(1),getsavepoint(2);
+			
+		}
+	end;
+ 
+OnPCLoadMapEvent:
+	set @map$,strcharinfo(3);
+		for(set @o,0; @o<getarraysize($@MapsP$); set @o,@o+1)
+			if(@map$==$@MapsP$[@o])
+			{
+				if($@BlockGM[0]) callfunc "BlockGM",1;
+				if($@PvPBaby) callfunc "CheckBabyPvP",1;
+				if($@ForLevel) callfunc "CheckLevelPvP",1;		
+				if($@ForItens) callfunc "CheckItemPvP",1;
+			}
+	end;
+	
+OnInit:
+		if($@PvPOn)
+				for(set .@i,0;.@i<getarraysize($@MapNames$);set .@i,.@i+1)
+					if(!getmapflag($@MapsP$[.@i],($@MapsType[.@i])?9:6)) setmapflag $@MapsP$[.@i],($@MapsType[.@i])?9:6; //Mapflag 6 = mf_pvp = PvP / 9 = mf_gvg = GvG
+
+		if($@PvPBaby)
+				for(set .@i,0;.@i<getarraysize($@BabyMaps$);set .@i,.@i+1)
+					if(!getmapflag($@BabyMaps$[.@i],42)) setmapflag $@BabyMaps$[.@i],42; //Mapflag 42 = mf_loadevent = Load Event para ninguem entrar nos pvp babys
+			
+		if($@ForItens)
+				for(set .@i,0;.@i<getarraysize(($@ForItemMaps)?$@ForItemMapsList:$@MapNames$);set .@i,.@i+1)
+					if(!getmapflag($@MapsP$[.@i],42)) setmapflag $@MapsP$[.@i],42; //Mapflag 42 = mf_loadevent = Load Event para ninguem entrar com os itens proibidos
+			
+		if($@ForLevel)
+				for(set .@i,0;.@i<getarraysize($@ForLevelList$);set .@i,.@i+3)
+					if(!getmapflag($@ForLevelList$[.@i],42)) setmapflag $@ForLevelList$[.@i],42; //Mapflag 42 = mf_loadevent = Load Event para ninguem entrar com os level restrito
+			
+		if($@MapFlags)
+			for(set .@i,0;.@i<getarraysize($@MapNames$);set .@i,.@i+1)
+				for(set .@i2,0;.@i2<getarraysize($@FlagList);set .@i2,.@i2+1)
+					setmapflag $@MapsP$[.@i],$@FlagList[.@i2];
+	end;
+ 
+}
+ 
+// Função que checa os itens de acordo com a váriavel no npc de PvP
+function	script	CheckItemPvP	{
+
+		set @map$,strcharinfo(3);
+			for(set @a,0;@a<getarraysize(($@ForItemMaps)?$@ForItemMapsList$:$@MapsP$);set @a,@a+1)
+			{
+				if(!getArg(0)) set @map$,$@MapsP$[@menu-1];
+					if(@map$==(($@ForItemMaps)?$@ForItemMapsList$[@a]:$@MapsP$[@a]))
+						for(set @i,0;@i<getarraysize($@ForList);set @i,@i+1)
+							if(countitem($@ForList[@i])) 
+							{
+								if(getArg(0)==1)  callfunc "PvPProibido",0;
+								else{
+								mes $@PvPName$;
+								mes "Me desculpe, mas alguns itens estão proibidos nas Zonas de Guerra. Itens Como:";
+								mes " ";
+									for(set @i2,0;@i2<getarraysize($@ForList);set @i2,@i2+1) mes "^FF0000"+getitemname($@ForList[@i2])+"^000000"; 
+								mes " ";
+								mes "Sendo assim, você não tem permissão para entrar.";
+								close;
+								}
+							}				
+			}
+	return;
+}
+ 
+ function	script	CheckLevelPvP	{
+ 
+		set @map$,strcharinfo(3);
+			for(set @a,0;@a<getarraysize($@ForLevelList$);set @a,@a+3)
+			{
+			if(!getArg(0)) set @map$,$@MapsP$[@menu-1];
+					if(@map$==$@ForLevelList$[@a])
+							if(BaseLevel<atoi($@ForLevelList$[@a+1]) || BaseLevel>atoi($@ForLevelList$[@a+2]))
+							{
+								if(getArg(0)==1) callfunc "PvPProibido",0;
+								else{
+								mes $@PvPName$;
+								mes "Me desculpe, mas existe uma restrição de léveis em certas Zonas de Guerra.";
+								mes "No caso da zona: "+@MapNames$[@menu-1]+" as restrições são as seguintes:";
+								mes " ";
+								mes "Lével Mínimo: "+$@ForLevelList$[@a+1];
+								mes "Lével Máximo: "+$@ForLevelList$[@a+2];
+								mes " ";
+								mes "Sendo assim, você não tem permissão para entrar.";
+								close;
+								}
+							}
+			}
+	return; 
+}
+
+function	script	CheckBabyPvP	{
+
+	set @map$,strcharinfo(3);
+		if(!getArg(0)) set @map$,$@MapsP$[@menu-1];
+			for(set .@i,0;.@i<getarraysize($@BabyMaps$);set .@i,.@i+1)
+				if(@map$==$@BabyMaps$[.@i] && ((Class<$@BabyClasses[0] || Class>$@BabyClasses[1]) && (Class<$@BabyClasses[2] || Class>$@BabyClasses[3]) &&  (Class<$@BabyClasses[4] || Class>$@BabyClasses[5])))
+				{
+						if(getArg(0)) callfunc "PvPProibido",1;
+						else{
+							mes $@PvPName$;
+							mes "Me perdoe, mas esta Zona é apenas para Babys";
+							close;
+						}
+				}
+	return;
+}
+
+function	script	BlockGM	{
+	
+	set @map$,strcharinfo(3);
+		if(getgmlevel()>=$@BlockGM[1] && getgmlevel()<=$@BlockGM[2])
+			if(!GetArg(0))
+			{
+				mes $@PvPName$;
+				mes "A entrada de Membros da Equipe do servidor está bloqueada no PvP.";
+				close;
+			} else
+				callfunc "PvPProibido",2;
+	return;
+
+}
+
+function	script	CheckIntervalo	{
+
+			for(set @c,0; @c<getarraysize($@IntKilled$); set @c,@c+1)	
+				if(@Morto$==getd("$@IntKilled$["+@c+"]"))
+				{
+					attachrid(getcharid(3,getd("$@IntKilled$["+@c+"]")));
+					set @Table$,(getmapflag(@map$,9))?"guild":"char";
+					set @RID,(getmapflag(@map$,9))?getcharid(2):getcharid(0);
+					query_sql "UPDATE `"+@Table$+"` SET `Mortes` = `Mortes` - 1 WHERE `"+@Table$+"_id` = '"+@RID+"'";
+					query_sql "SELECT `Mortes` FROM `"+@Table$+"` WHERE `"+@Table$+"_id` = '"+@RID+"'",@Mortes;
+					dispbottom "Um ponto de morte foi descontado de você, pois quem te matou não esperou o tempo necessário.";
+					dispbottom ((getmapflag(@map$,9))?"*Clã - ":"*") +"Mortes: "+@Mortes;
+					attachrid(getcharid(3,getd("$@IntChar$["+@c+"]")));
+					set @Table$,(getmapflag(@map$,9))?"guild":"char";
+					set @RID,(getmapflag(@map$,9))?getcharid(2):getcharid(0);
+					query_sql "SELECT `Kills`,`Ratio` FROM `"+@Table$+"` WHERE `"+@Table$+"_id` = '"+@RID+"'",@PvPPoints,@Ratio;
+					dispbottom "Você não esperou o tempo necessário para matar este jogador, foi descontado um ponto de PvP.";
+					dispbottom ((getmapflag(@map$,9))?"*Clã - ":"*") +"Kills: "+@PvPPoints;
+					dispbottom ((getmapflag(@map$,9))?"*Clã - ":"*") +"Ratio: "+@Ratio;
+					end;
+					
+				}
+		setd "$@IntChar$["+getarraysize($@IntChar$)+"]",strcharinfo(0);
+		setd "$@IntKilled$["+getarraysize($@IntKilled$)+"]",@Morto$;
+		setd "$@IntTime["+getarraysize($@IntTime)+"]",($@SecondInt*1000);
+		
+	return;
+	
+
+}
+
+// Função para quem entrar nos mapas PvPs com restrições, exemplo: Jogador X entra no mapa por @warp com yggdrasils, estas estão bloqueadas na zona em que ele está
+// O que acontecerá com ele ? Case 0 - Morre -- Case 1 - É teleportado para o savepoint 
+// Novos cases podem ser criados, modifique como quiser
+function	script	PvPProibido	{
+
+	switch(getArg(0))
+	{
+		case 0:
+		// Mata a personagem ao entrar com as restrições
+			percentheal -100,100;
+			return;
+			
+		case 1:
+		// Teleporta a personagem para seu ponto salvo ao entrar com as restrições
+			warp getsavepoint(0),getsavepoint(1),getsavepoint(2);
+			return;
+			
+		case 2:
+		// Da hide e petrifica e teleporta para o ponto salvo
+			atcommand "@option 1 0 64";
+			warp getsavepoint(0),getsavepoint(1),getsavepoint(2);
+			return;
+	
+	}
+
+}
+
+// Npc tempo do intervalo de kills
+-	script	IntTimeNpc	-1,{
+
+OnInit:
+	initnpctimer;
+	end;
+	
+OnTimer1000:
+	for(set .Uou,0;.Uou<getarraysize($@IntTime); set .Uou,.Uou+1)		{
+			if($@IntTime[.Uou]>1000) setarray $@IntTime[.Uou],$@IntTime[.Uou]-1000;
+				if($@IntTime[.Uou]<=1000){
+						if(isloggedin(getcharid(3,$@IntChar$[.Uou]))){
+							attachrid(getcharid(3,$@IntChar$[.Uou]));
+							dispbottom "Você já está autorizado a matar o jogador: "+$@IntKilled$[.Uou];
+						}
+						if(isloggedin(getcharid(3,$@IntKilled$[.Uou]))){
+							attachrid(getcharid(3,$@IntKilled$[.Uou]));
+							dispbottom "Você já pode ser morto pelo jogador: "+$@IntChar$[.Uou];
+						}
+					detachrid;
+					deletearray $@IntChar$[.Uou],1;
+					deletearray $@IntKilled$[.Uou],1;
+					deletearray $@IntTime[.Uou],1;
+				}
+		}
+	stopnpctimer;
+	setnpctimer 0;
+	initnpctimer;
+	
+}
+
+// Registrar os kills de todos, para admins.
+function	script	LogKill	{
+
+	set @hora$,gettime(5)+"/"+gettime(6)+"/"+gettime(7)+" - "+gettime(3)+":"+gettime(2)+":"+gettime(1);
+	query_sql "INSERT INTO `kill_log` (`Assassino`, `Alvo`, `Data`) VALUES ('"+escape_sql(strcharinfo(0))+"', '"+escape_sql(@Morto$)+"', '"+@hora$+"')";
+	return;
+
+}
+/////////////////////////////
+// Custom funcoes
+/////////////////////////////
+// PvP com disguise sorteado
+function	script	disguisepvp	{
+
+	set @mobmax,1960; // ID máximo de monstro
+	disguise rand(1002,@mobmax);
+	return;
+
+}
+// Para tirar o disguise ao morrer
+-	script	DisguiseDie	-1,{
+
+OnPcDieEvent:
+	set @map$,strcharinfo(3);
+		if($@CustomFuncoes)
+			for(set @i,0;@i<getarraysize($@CustomFuncoesList$);set @i,@i+2)
+				if(@map$==$@CustomFuncoesList$[@i]) undisguise;
+	end;
+
+}
+//////////////////////////////
+//////////////////////////////
